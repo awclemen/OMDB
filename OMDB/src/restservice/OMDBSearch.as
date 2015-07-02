@@ -2,6 +2,7 @@ package restservice
 {
 	import events.ResultEvent;
 	
+	import flash.events.ErrorEvent;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	import flash.events.IOErrorEvent;
@@ -22,7 +23,7 @@ package restservice
 	public class OMDBSearch extends EventDispatcher {
 	
 		// URL address of OMDB service.
-		private static omdbURL = "http://www.omdbapi.com/?";
+		private var omdbURL:String = "http://www.omdbapi.com/?";
 		
 		// Singleton instance of this class.
 		private static var _instance:OMDBSearch;
@@ -50,7 +51,8 @@ package restservice
 			 
 			var variables:URLVariables = new URLVariables();
 			// s is for search on title, y is for year, r is for return type (xml or json)
-			variables.s = title;
+			// asterisk on the end for wildcard search.
+			variables.s = title + "*";
 			if (year > 0)
 				variables.y = year;
 			variables.r = "xml";
@@ -75,21 +77,24 @@ package restservice
 			try	{
 				xmlData = new XML(response);
 				xmlListCol = new XMLListCollection(xmlData.Movie);
+				if (xmlListCol.length == 0) {
+					dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, xmlData.error));
+					return;				
+				}
 				dispatchEvent(new ResultEvent(ResultEvent.RESULTS_RECEIVED, xmlListCol));
 			} catch(error:TypeError) {
-				trace("the response data was not in valid XML format");
-				trace(response);
+				dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, "the response data was not in valid XML format"));
 			}
 		} // end handleResults(Event)
 		
 		protected function handleIOError(evt:IOErrorEvent):void
 		{
-			trace("handleIOError(" + evt.toString()  + ")");
+			dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, "handleIOError(" + evt.toString()  + ")"));
 		}
 				
 		protected function handleSecurityError(evt:SecurityErrorEvent):void
 		{
-			trace("handleSecurityError(" + evt.toString() + ")");			
+			dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, "handleSecurityError(" + evt.toString() + ")"));
 		}
 		
 	} // end class OMDBSearch

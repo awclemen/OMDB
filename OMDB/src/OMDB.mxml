@@ -18,12 +18,15 @@
 		import restservice.OMDBSearch;
 		import events.ResultEvent;
 		
+		import mx.managers.CursorManager;
+		
 		private function initApp():void {
 			tiMovieName.setFocus();
 		}
 		
 		// function call on pressing RunQuery button.
 		private function runQuery(evt:Event):void {
+			CursorManager.setBusyCursor();
 			var omdbRestService:OMDBSearch = OMDBSearch.getInstance();
 			
 			// adding event listeners.
@@ -32,25 +35,57 @@
 			
 			// do data validation here.
 			var movieYear:Number = Number(tiYear.text);
-			
+			if (movieYear > 0) 
+				movieYear = validateYear(movieYear);
+			if (movieYear == -1) {
+					CursorManager.removeBusyCursor();
+					return;
+			}
+				
+			var movieTitle:String = tiMovieName.text;
+			if (movieTitle.length < 2) {
+					mx.controls.Alert.show("Must have at least two characters in movie title.", "Error with Request.");
+					CursorManager.removeBusyCursor();
+					return;
+			}
+				
 			omdbRestService.sendSearch(tiMovieName.text, movieYear);
 		} // end runQuery(Event)
 		
 		private function validateYear(aYear:Number):Number {
-			//TODO:
-			return 0;
+			var currentDate:Date = new Date();
+			var currentFullYear:int = currentDate.getFullYear();
+			var currentShortYear:int = currentFullYear % 100;
+			
+			// if the year is less than 100, assume it is a 2 digit year and add the 
+			// century part.
+			if (aYear < 100) {
+				if (aYear <= (currentShortYear + 1))
+					aYear += 2000;
+				else 
+					aYear += 1900;
+			} // end if (aYear < 100)
+			
+			if (aYear < 1900 || aYear > currentFullYear) {
+				mx.controls.Alert.show("Year must be between 1900 and " + currentFullYear + ".", "Error with Request.");	
+				return -1;
+			}
+			
+			return aYear;
 		} // end validateYear(Number)
 
 		// receives the XML data from the OMDB Search and places it in the Data Grid
 		// if there is no error.
 		private function handleXMLData(evt:ResultEvent):void {
 			movie_grid.dataProvider = evt.data;
+			CursorManager.removeBusyCursor();
 		} // end handleXMLData(ResultEvent)
 		
 		// handles the error from the OMDBSearch, if there is one.
 		// informs the user of the error.
 		private function handleError(evt:ErrorEvent):void {
-			tError.text = "ERROR: Unable to retrieve data - " + evt.text;
+			mx.controls.Alert.show("ERROR: Unable to retrieve data - " + evt.text);
+			CursorManager.removeBusyCursor();
 		} // end handleError(ErrorEvent)
 		
 	]]>
@@ -71,14 +106,12 @@
 				<mx:Form id="frmQueryOmdb" 
 					creationComplete="tiMovieName.setFocus();" 
 					width="100%" height="100%">
-					<mx:Text text="* REQUIRED" visible="true" color="red"/>
 					<mx:HBox width="100%" height="100%">
 						<mx:FormItem 
 							label="Movie Name:" 
 							labelWidth="100" 
 							fontWeight="bold" 
-							width="75%" 
-							required="true">
+							width="75%" >
 							<mx:TextInput 
 								id="tiMovieName" 
 								width="100%" 
@@ -99,7 +132,6 @@
 								maxChars="4"/>
 						</mx:FormItem>
 					</mx:HBox>
-					<mx:Text id="tError" text="" visible="false" color="red"/>
 				</mx:Form>
 				<mx:ControlBar direction="vertical" percentWidth="100" verticalGap="0" >
 					<mx:HBox percentWidth="100">
@@ -131,7 +163,7 @@
 							<mx:DataGridColumn 
 								headerText="Year" 
 								dataField="@Year" 
-								width="50" 
+								width="100" 
 								resizable="true" />
 							<mx:DataGridColumn 
 								headerText="IMDB ID" 
