@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" 
+	layout="absolute"
+	percentWidth="100" 
+	percentHeight="100"  
+	paddingBottom="5" 
+	paddingLeft="5" 
+	paddingRight="5" 
+	paddingTop="5"
+	creationComplete="initApp()" >
+	
+	<mx:Style source="style/autumn.css"/> 
+
+    <mx:XMLListCollection id="movieXMLList" />
+    
+    <mx:Script>
+	<![CDATA[
+		import restservice.OMDBSearch;
+		import events.ResultEvent;
+		
+		private function initApp():void {
+			tiMovieName.setFocus();
+		}
+		
+		// function call on pressing RunQuery button.
+		private function runQuery(evt:Event):void {
+			var omdbRestService:OMDBSearch = OMDBSearch.getInstance();
+			
+			// adding event listeners.
+			omdbRestService.addEventListener(ResultEvent.RESULTS_RECEIVED, handleXMLData);
+			omdbRestService.addEventListener(ErrorEvent.ERROR, handleError);
+			
+			// do data validation here.
+			var movieYear:Number = Number(tiYear.text);
+			
+			omdbRestService.sendSearch(tiMovieName.text, movieYear);
+		} // end runQuery(Event)
+		
+		private function validateYear(aYear:Number):Number {
+			//TODO:
+			return 0;
+		} // end validateYear(Number)
+
+		// receives the XML data from the OMDB Search and places it in the Data Grid
+		// if there is no error.
+		private function handleXMLData(evt:ResultEvent):void {
+			movie_grid.dataProvider = evt.data;
+		} // end handleXMLData(ResultEvent)
+		
+		// handles the error from the OMDBSearch, if there is one.
+		// informs the user of the error.
+		private function handleError(evt:ErrorEvent):void {
+			tError.text = "ERROR: Unable to retrieve data - " + evt.text;
+		} // end handleError(ErrorEvent)
+		
+	]]>
+	</mx:Script>
+
+	<mx:HBox x="0" y="0" percentWidth="100" percentHeight="100">
+		<mx:VDividedBox 
+			horizontalAlign="left" 
+			percentWidth="100" 
+			percentHeight="100" 
+			backgroundColor="#FFFFFF">
+			<mx:Panel title="OMDB Query App" 
+				paddingBottom="0" 
+				paddingLeft="0" 
+				paddingRight="0" 
+				paddingTop="0"
+				width="100%">
+				<mx:Form id="frmQueryOmdb" 
+					creationComplete="tiMovieName.setFocus();" 
+					width="100%" height="100%">
+					<mx:Text text="* REQUIRED" visible="true" color="red"/>
+					<mx:HBox width="100%" height="100%">
+						<mx:FormItem 
+							label="Movie Name:" 
+							labelWidth="100" 
+							fontWeight="bold" 
+							width="75%" 
+							required="true">
+							<mx:TextInput 
+								id="tiMovieName" 
+								width="100%" 
+								enter="runQuery(null)"
+								maxChars="100"/>
+						</mx:FormItem>
+						<mx:FormItem 
+							label="Year:" 
+							labelWidth="50" 
+							fontWeight="bold" 
+							width="25%" 
+							required="false">
+							<mx:TextInput  
+								id="tiYear" 
+								width="100%" 
+								enter="runQuery(null)"
+								restrict="0-9"
+								maxChars="4"/>
+						</mx:FormItem>
+					</mx:HBox>
+					<mx:Text id="tError" text="" visible="false" color="red"/>
+				</mx:Form>
+				<mx:ControlBar direction="vertical" percentWidth="100" verticalGap="0" >
+					<mx:HBox percentWidth="100">
+						<mx:Text id="tVersion" text="" />
+						<mx:Button id="btnQuery" click="runQuery(event)" label="Run Query" />
+					</mx:HBox>
+				</mx:ControlBar>
+			</mx:Panel> 
+			<mx:HBox 
+				id="queryResults" 
+				percentHeight="100" 
+				percentWidth="100" 
+				paddingBottom="0" 
+				paddingLeft="0" 
+				paddingRight="0" 
+				paddingTop="0" >
+				<mx:DataGrid 
+					id="movie_grid" 
+					dataProvider="{movieXMLList}"
+					percentWidth="100" 
+					percentHeight="100">
+					<mx:columns>
+						<mx:Array>
+							<mx:DataGridColumn 
+								headerText="Movie" 
+								dataField="@Title" 
+								width="200" 
+								resizable="true" />
+							<mx:DataGridColumn 
+								headerText="Year" 
+								dataField="@Year" 
+								width="50" 
+								resizable="true" />
+							<mx:DataGridColumn 
+								headerText="IMDB ID" 
+								dataField="@imdbID" 
+								width="100" 
+								resizable="true" />
+							<mx:DataGridColumn 
+								headerText="Type" 
+								dataField="@Type" 
+								width="50" 
+								resizable="true" />
+						</mx:Array>
+					</mx:columns>
+				</mx:DataGrid>
+			</mx:HBox> 
+		</mx:VDividedBox>
+	</mx:HBox>	
+</mx:Application>
